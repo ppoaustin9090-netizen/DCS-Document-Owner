@@ -590,23 +590,11 @@ export default function App() {
         zIndex: 100,
         color: '#FFFFFF'
       }}>
-        <div style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-          <div style={{ 
-            backgroundColor: '#FFFFFF', 
-            padding: '10px 20px', 
-            borderRadius: '16px', 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            border: '1px solid rgba(0,0,0,0.05)'
-          }}>
-            <span style={{ color: '#C8102E', fontWeight: 900, fontSize: '20px', letterSpacing: '-0.5px', fontFamily: 'Outfit, sans-serif' }}>KAMOA</span>
-            <span style={{ color: '#00205B', fontWeight: 900, fontSize: '20px', letterSpacing: '-0.5px', fontFamily: 'Outfit, sans-serif' }}>COPPER S.A.</span>
-          </div>
+        <div style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ textAlign: 'center' }}>
-            <h1 style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '1px', color: '#FFFFFF', textTransform: 'uppercase', opacity: 0.9 }}>Kamoa Copper SA</h1>
-            <p style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.5)', letterSpacing: '2px', textTransform: 'uppercase', marginTop: '4px' }}>System</p>
+            <h1 style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '1px', color: '#FFFFFF', textTransform: 'uppercase' }}>Kamoa Copper SA</h1>
+            <div style={{ width: '40px', height: '2px', background: COLORS.accentGradient, margin: '16px auto' }} />
+            <p style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.6)', letterSpacing: '2px', textTransform: 'uppercase', fontWeight: 700 }}>Document Control System</p>
           </div>
         </div>
 
@@ -662,8 +650,6 @@ export default function App() {
           marginBottom: '20px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.textMuted, fontSize: '14px' }}>
-            <span>DocCtrl</span>
-            <ChevronRight size={14} />
             <span style={{ color: COLORS.textPrimary, fontWeight: 500 }}>{activePage}</span>
           </div>
 
@@ -1459,6 +1445,7 @@ function FolderTree({ onSelect }: { onSelect: (id: string) => void }) {
 function UploadWizard({ onComplete }: { onComplete: (doc: Document) => void }) {
   const [step, setStep] = useState(1);
   const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<Partial<Document>>({
     title: '',
     type: DOC_TYPES[0],
@@ -1475,6 +1462,29 @@ function UploadWizard({ onComplete }: { onComplete: (doc: Document) => void }) {
     language: LANGUAGES[0],
   });
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData(prev => ({ ...prev, title: file.name.split('.')[0] }));
+      setStep(2);
+    }
+  };
+
+  const handleBrowseClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fileInputRef.current?.click();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setFormData(prev => ({ ...prev, title: file.name.split('.')[0] }));
+      setStep(2);
+    }
+  };
+
   // Pre-populated fields
   const documentTypeCode = useMemo(() => {
     const typePrefix = (formData.typeOfDocument || 'POL').substring(0, 3).toUpperCase();
@@ -1487,9 +1497,7 @@ function UploadWizard({ onComplete }: { onComplete: (doc: Document) => void }) {
   }, [formData.departmentName]);
 
   const nextReviewBy = useMemo(() => {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() + 1);
-    return date.toISOString().split('T')[0];
+    return '14 days';
   }, []);
 
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -1587,6 +1595,7 @@ function UploadWizard({ onComplete }: { onComplete: (doc: Document) => void }) {
             <motion.div 
               onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
               onDragLeave={() => setDragActive(false)}
+              onDrop={handleDrop}
               animate={{ 
                 borderColor: dragActive ? 'var(--accent-primary)' : 'var(--border)',
                 backgroundColor: dragActive ? 'rgba(139, 92, 246, 0.05)' : 'transparent',
@@ -1599,8 +1608,15 @@ function UploadWizard({ onComplete }: { onComplete: (doc: Document) => void }) {
                 cursor: 'pointer',
                 transition: 'all 0.3s ease'
               }}
-              onClick={() => setStep(2)}
+              onClick={() => fileInputRef.current?.click()}
             >
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleFileChange}
+                accept=".pdf,.docx,.xlsx,image/*"
+              />
               <div style={{ 
                 width: '80px', 
                 height: '80px', 
@@ -1617,15 +1633,19 @@ function UploadWizard({ onComplete }: { onComplete: (doc: Document) => void }) {
               <p style={{ color: 'var(--text-muted)', marginBottom: '40px', maxWidth: '400px', margin: '0 auto 40px', fontSize: '16px' }}>
                 Support for PDF, DOCX, XLSX and high-resolution images. Max file size 50MB.
               </p>
-              <button className="btn-ripple glow-primary" style={{ 
-                background: 'var(--accent-primary)', 
-                color: 'white', 
-                border: 'none', 
-                padding: '16px 48px', 
-                borderRadius: '16px', 
-                fontWeight: '700',
-                fontSize: '16px'
-              }}>
+              <button 
+                onClick={handleBrowseClick}
+                className="btn-ripple glow-primary" 
+                style={{ 
+                  background: 'var(--accent-primary)', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '16px 48px', 
+                  borderRadius: '16px', 
+                  fontWeight: '700',
+                  fontSize: '16px'
+                }}
+              >
                 Browse Files
               </button>
             </motion.div>
@@ -1697,7 +1717,7 @@ function UploadWizard({ onComplete }: { onComplete: (doc: Document) => void }) {
 
               {/* Row 6 - Multiple Choice */}
               <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-muted)' }}>Internal Stakeholder/SME*</label>
+                <label style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-muted)' }}>Partners*</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                   {STAKEHOLDERS.map(s => (
                     <button
@@ -1728,7 +1748,7 @@ function UploadWizard({ onComplete }: { onComplete: (doc: Document) => void }) {
 
               {/* Row 7 - Pre-populated */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <label style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-muted)' }}>Next Review By (Auto)</label>
+                <label style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-muted)' }}>Retention (Expire)</label>
                 <input type="text" readOnly value={nextReviewBy} style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
